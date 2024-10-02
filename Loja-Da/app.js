@@ -1,59 +1,118 @@
-document.addEventListener('DOMContentLoaded', function() {
-    const estoqueList = document.getElementById('estoque-list');
-    const formProduto = document.getElementById('form-produto');
+const localhost = "http://localhost:8080";
 
-    function carregarEstoque() {
-        fetch('http://localhost:8080/api/estoque')
-            .then(response => response.json())
-            .then(data => {
-                estoqueList.innerHTML = '';
-                data.forEach(item => {
-                    const li = document.createElement('li');
-                    li.textContent = `${item.nome} - ${item.quantidade} unidades - R$${item.preco.toFixed(2)}`;
-                    estoqueList.appendChild(li);
-                });
-            })
-            .catch(error => {
-                console.error('Erro ao carregar o estoque:', error);
-            });
-    }
+document.getElementById('produto-form').addEventListener('submit', function(event) {
+    event.preventDefault();
 
-    formProduto.addEventListener('submit', function(event) {
-        event.preventDefault();
+    const sku = document.getElementById('sku').value;
+    const nome = document.getElementById('nome').value;
 
-        const nome = document.getElementById('nome').value;
-        const quantidade = document.getElementById('quantidade').value;
-        const preco = document.getElementById('preco').value;
+    const produto = {
+        SKU: sku,
+        nome: nome
+    };
 
-        if (!nome || isNaN(quantidade) || isNaN(preco)) {
-            alert('Por favor, preencha todos os campos corretamente.');
-            return;
-        }
-
-        const novoProduto = {
-            nome: nome,
-            quantidade: parseInt(quantidade),
-            preco: parseFloat(preco)
-        };
-
-        fetch('http://localhost:8080/api/estoque', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(novoProduto),
+    fetch(`${localhost}/produto`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(produto)
+    })
+        .then(response => {
+            if (response.ok) {
+                return response.json();
+            } else {
+                throw new Error('Erro ao cadastrar o produto');
+            }
         })
-        .then(response => response.json())
         .then(data => {
-            console.log('Produto adicionado:', data);
-            carregarEstoque();
-            formProduto.reset(); // Limpa os campos do formulário
+            document.getElementById('mensagem').textContent = 'Produto cadastrado com sucesso!';
+            console.log('Produto cadastrado:', data);
         })
         .catch(error => {
-            console.error('Erro ao adicionar o produto:', error);
-            alert('Erro ao adicionar o produto. Tente novamente.');
+            document.getElementById('mensagem').textContent = 'Erro ao cadastrar o produto.';
+            console.error('Erro:', error);
         });
-    });
+});
 
-    carregarEstoque();
+function carregarProdutos() {
+    fetch(`${localhost}/produto`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Erro ao buscar os produtos');
+            }
+            return response.json();
+        })
+        .then(produtos => {
+            console.log(produtos);
+            const produtosList = document.getElementById('produtos-list');
+            produtosList.innerHTML = '';
+            produtos.forEach(produto => {
+                const listItem = document.createElement('li');
+                listItem.textContent = `SKU: ${produto.SKU}, Nome: ${produto.nome}`;
+                produtosList.appendChild(listItem);
+            });
+        })
+        .catch(error => {
+            console.error('Erro:', error);
+        });
+}
+
+document.getElementById('atualizar-produto-form').addEventListener('submit', function(event) {
+    event.preventDefault();
+
+    const sku = document.getElementById('atualizar-sku').value;
+    const nome = document.getElementById('atualizar-nome').value;
+
+    const produtoAtualizado = {
+        nome: nome
+    };
+
+    fetch(`${localhost}/produto/${sku}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(produtoAtualizado)
+    })
+        .then(response => {
+            if (response.ok) {
+                return response.json();
+            } else {
+                throw new Error('Erro ao atualizar o produto');
+            }
+        })
+        .then(data => {
+            document.getElementById('mensagem-atualizacao').textContent = 'Produto atualizado com sucesso!';
+            console.log('Produto atualizado:', data);
+        })
+        .catch(error => {
+            document.getElementById('mensagem-atualizacao').textContent = 'Erro ao atualizar o produto.';
+            console.error('Erro:', error);
+        });
+});
+
+document.getElementById('excluir-produto-form').addEventListener('submit', function(event) {
+    event.preventDefault();
+
+    const sku = document.getElementById('excluir-sku').value;
+
+    fetch(`${localhost}/produto/${sku}`, {
+        method: 'DELETE',
+    })
+        .then(response => {
+            if (response.ok) {
+                return response.text();
+            } else {
+                throw new Error('Erro ao excluir o produto');
+            }
+        })
+        .then(data => {
+            document.getElementById('mensagem-exclusao').textContent = data || 'Produto excluído com sucesso!';
+            console.log('Produto excluído:', data);
+        })
+        .catch(error => {
+            document.getElementById('mensagem-exclusao').textContent = 'Erro ao excluir o produto.';
+            console.error('Erro:', error);
+        });
 });
